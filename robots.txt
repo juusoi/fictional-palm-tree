@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# No Sitemap: line yet — it needs the final public URL, which is set when
+# hosting is configured (see SECURITY.md).

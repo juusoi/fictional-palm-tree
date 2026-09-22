@@ -1,0 +1,42 @@
+# Whitelist .gitignore: deny everything, then re-allow what belongs in the repo.
+# Rationale: nothing lands in a commit by accident — a new file has to be
+# named here before git will even offer it.
+
+*
+!*/
+
+# --- documentation ---
+!.gitignore
+!README.md
+!SECURITY.md
+!LICENSE
+
+# --- the site itself ---
+!index.html
+!robots.txt
+!assets/**/*.css
+!assets/**/*.js
+!assets/**/*.svg
+
+# --- tests & tooling ---
+!tests/**/*.js
+!tests/**/*.png
+!package.json
+!package-lock.json
+!playwright.config.js
+!eslint.config.js
+!.prettierrc.json
+!.prettierignore
+!.stylelintrc.json
+!.htmlvalidate.json
+
+# --- CI ---
+!.github/**/*.yml
+
+# `!*/` above re-includes every directory, so generated ones must be
+# excluded again by name or their whitelisted contents would slip through.
+node_modules/
+playwright-report/
+test-results/
+blob-report/
+.DS_Store
