@@ -31,6 +31,14 @@ test("the content security policy is present and strict", async ({ page }) => {
   expect(csp).not.toContain("unsafe-eval");
 });
 
+test("the referrer policy is declared in markup", async ({ page }) => {
+  // The host (GitHub Pages) cannot send a Referrer-Policy header, so this
+  // meta tag is the only thing carrying it. If it goes, the policy goes.
+  await page.goto("/");
+  const referrer = await page.locator('meta[name="referrer"]').getAttribute("content");
+  expect(referrer, "the referrer meta tag is missing").toBe("no-referrer");
+});
+
 test("there is no inline script, style or event handler", async ({ page }) => {
   await page.goto("/");
 

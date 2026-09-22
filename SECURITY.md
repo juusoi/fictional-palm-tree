@@ -16,23 +16,60 @@ font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'`.
   by watching every network request the page makes.
 - `rel="noopener noreferrer"` on every external link, also asserted in tests.
 
-## What the site cannot enforce — deploy checklist
+## Host: GitHub Pages, and what that costs
 
-These **cannot** be set from a meta tag. They need real HTTP response headers
-from whichever host is chosen, and until then clickjacking protection in
-particular is absent:
+The site is hosted on GitHub Pages with a custom subdomain. **GitHub Pages
+cannot send custom HTTP response headers** — there is no `_headers` file, no
+`netlify.toml`, no configuration of any kind for this. Verified empirically
+against GitHub's own Pages site on a custom domain:
 
-| Header                      | Value                                                          |
-| --------------------------- | -------------------------------------------------------------- |
-| `Content-Security-Policy`   | same policy as the meta tag, plus `frame-ancestors 'none'`     |
-| `X-Frame-Options`           | `DENY`                                                         |
-| `X-Content-Type-Options`    | `nosniff`                                                      |
-| `Referrer-Policy`           | `no-referrer`                                                  |
-| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=(), interest-cohort=()` |
-| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload`                 |
+```console
+$ curl -sSI https://pages.github.com/
+HTTP/2 200
+server: GitHub.com
+content-type: text/html; charset=utf-8
+access-control-allow-origin: *
+...
+```
 
-No host has been configured yet, so none of the above is applied. Apply them
-in the same change that sets up hosting.
+No `Strict-Transport-Security`, no `X-Frame-Options`, no
+`X-Content-Type-Options`, no `Referrer-Policy`. This is not a pending task;
+on this host it is not achievable. It was a deliberate, informed choice to
+accept it in exchange for the simplicity of hosting.
+
+| Control                             | Status on GitHub Pages | Notes                                                                                                                          |
+| ----------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| HTTPS, with HTTP redirected         | **Yes**                | Enable "Enforce HTTPS" in Settings → Pages once the certificate is issued                                                      |
+| Content-Security-Policy             | **Partly**             | The meta tag carries the full policy except `frame-ancestors`, which is ignored in meta form by specification                  |
+| Referrer-Policy                     | **Yes**                | Recovered via `<meta name="referrer" content="no-referrer">`, asserted in `tests/e2e/security.spec.js`                         |
+| X-Content-Type-Options              | No                     | Mitigated in practice: Pages serves a correct `Content-Type` for every file type this site uses (html, css, js, svg, txt)      |
+| X-Frame-Options / `frame-ancestors` | No                     | See the clickjacking note below                                                                                                |
+| Strict-Transport-Security           | No                     | Also rules out the HSTS preload list, which requires the header to be served. `github.io` is preloaded; a custom domain is not |
+
+### Clickjacking: assessed, accepted
+
+The page can be framed by anyone. The honest impact: it is a static
+portfolio with no authentication, no session, no forms, no state, and no
+action a victim could be tricked into performing. Framing it achieves
+nothing beyond displaying it. The risk is accepted rather than mitigated.
+
+A JavaScript frame-buster was considered and rejected: it would be trivially
+bypassed, would break legitimate embedding, and would add a moving part to a
+page whose whole security argument is that it has none.
+
+If this ever grows a form, a login, or anything a click can trigger, that
+assessment stops holding — move to a host that can send headers
+(Cloudflare Pages and Netlify both support a `_headers` file) and apply the
+full set:
+
+| Header                      | Value                                          |
+| --------------------------- | ---------------------------------------------- |
+| `Content-Security-Policy`   | the meta policy, plus `frame-ancestors 'none'` |
+| `X-Frame-Options`           | `DENY`                                         |
+| `X-Content-Type-Options`    | `nosniff`                                      |
+| `Referrer-Policy`           | `no-referrer`                                  |
+| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=()`     |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` |
 
 ## Pipeline
 

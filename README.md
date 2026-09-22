@@ -82,12 +82,63 @@ enforced by the accessibility gate:
 - Red `#f00` (5.25:1) passes for normal text but is reserved for headings and
   accents anyway.
 
+## Hosting
+
+Deployed to GitHub Pages by `.github/workflows/pages.yml` on every push to
+`main`. The workflow runs lint, unit tests and a Chromium + no-JS end-to-end
+pass before it deploys, so a red test never reaches the live site.
+
+It publishes an **allowlist**, not the checkout — `index.html`, `robots.txt`,
+`assets/` and `CNAME` are copied into `_site/`. Tests, workflows and configs
+stay off the public site.
+
+### One-time setup
+
+1. **Repository → Settings → Pages → Build and deployment → Source:**
+   select **GitHub Actions**.
+2. Add the `CNAME` file to the repo root containing the bare subdomain, e.g.
+   `juuso.example.com` — no scheme, no trailing slash, no trailing newline
+   issues (a single trailing newline is fine).
+3. Add one DNS record at your provider:
+
+   | Type  | Name                          | Value               |
+   | ----- | ----------------------------- | ------------------- |
+   | CNAME | `juuso` (the subdomain label) | `juusoi.github.io.` |
+
+   The target is the **user** domain `juusoi.github.io`, not the project
+   path — GitHub routes to the right repository using the `CNAME` file.
+
+4. **Settings → Pages → Custom domain:** enter the same subdomain and save.
+   GitHub verifies DNS, then issues a Let's Encrypt certificate. This can
+   take up to 24 hours; until it completes, HTTPS will error.
+5. Once the certificate is issued, tick **Enforce HTTPS**.
+
+Check propagation with:
+
+```sh
+dig +short juuso.example.com CNAME
+curl -sSI https://juuso.example.com/ | head -1
+```
+
+Note that `CNAME` is whitelisted in `.gitignore`. It has to be — the
+deny-by-default rules would otherwise drop it silently, and a missing
+`CNAME` file is exactly how a custom domain reverts without anyone noticing.
+
+Asset paths are relative, so the site works both at
+`juusoi.github.io/fictional-palm-tree/` and at the custom domain root.
+
 ## Security
 
-See [SECURITY.md](SECURITY.md). Short version: a strict CSP ships in the page,
-but `frame-ancestors`, `Referrer-Policy`, `X-Content-Type-Options` and HSTS
-need real HTTP headers and **no host is configured yet** — there is a deploy
-checklist waiting in that file.
+See [SECURITY.md](SECURITY.md). Short version: a strict CSP and a
+`no-referrer` policy ship in the page's markup, but **GitHub Pages cannot
+send custom response headers at all** — verified against GitHub's own Pages
+site. So `X-Content-Type-Options`, `X-Frame-Options`/`frame-ancestors` and
+HSTS are unavailable on this host, permanently, not pending.
+
+That was an informed trade for hosting simplicity. Clickjacking is the only
+control genuinely lost, and on a static page with no auth, forms or state
+there is nothing to hijack — the assessment and its expiry condition are
+written down in SECURITY.md.
 
 ## Layout
 

@@ -1,0 +1,65 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancel a deploy midway; queue instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify before deploying
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:unit
+      # Chromium and the no-JS project are enough of a gate for a deploy;
+      # the full cross-engine matrix already ran in ci.yml on the same commit.
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=chromium --project=nojs
+
+  deploy:
+    name: Deploy
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # Publish an explicit allowlist rather than the whole checkout: the
+      # repo also holds tests, workflows and configs, and none of that
+      # belongs on the public site. Same philosophy as the .gitignore.
+      - name: Stage the site
+        run: |
+          mkdir -p _site
+          cp index.html robots.txt _site/
+          cp -R assets _site/
+          if [ -f CNAME ]; then cp CNAME _site/; fi
+          echo "--- staged ---"
+          find _site -type f | sort
+
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

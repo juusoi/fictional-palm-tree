@@ -7,6 +7,10 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'"
     />
+    <!-- Referrer-Policy as a meta tag: GitHub Pages cannot send custom
+         response headers, and this is the one checklist item that has a
+         markup equivalent browsers honour. See SECURITY.md. -->
+    <meta name="referrer" content="no-referrer" />
     <title>P100 — Juuso Issakainen</title>
     <meta
       name="description"

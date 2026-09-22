@@ -14,6 +14,7 @@
 # --- the site itself ---
 !index.html
 !robots.txt
+!CNAME
 !assets/**/*.css
 !assets/**/*.js
 !assets/**/*.svg
