@@ -41,7 +41,8 @@ bug: the page still routed, but the script never loaded).
 npm test           # lint + unit + end-to-end
 npm run test:unit  # node:test, no dependencies, runs in milliseconds
 npm run test:e2e   # Playwright: navigation, keyboard, no-JS, a11y, security, layout, budget, visual
-npm run links      # external link check
+npm run links      # external link check (LinkedIn blocks bots; the canonical
+                   # URL is skipped until the domain is live — see Hosting)
 npm run lint:actions  # actionlint over .github/workflows (needs the actionlint binary)
 ```
 
@@ -143,6 +144,10 @@ host.
    save. GitHub verifies DNS, then issues a Let's Encrypt certificate. This
    can take up to 24 hours, and HTTPS errors until it completes.
 4. Once the certificate is issued, tick **Enforce HTTPS**.
+5. Then remove `--skip "^https://juuso.issakainen.fi"` from the `links`
+   script in `package.json`. It is there only because the canonical URL
+   cannot resolve before the domain is live; once it is, the link check
+   should be verifying it.
 
 Verify:
 
@@ -180,20 +185,32 @@ tests/e2e/              Playwright
 
 ## Dependency posture
 
-`npm audit --audit-level=high` gates CI and currently passes.
+`npm audit --audit-level=high` gates CI. Current state: **0 outdated
+packages, 0 advisories** at any severity.
 
-`@lhci/cli` (Lighthouse CI) was evaluated and **removed**: it contributed five
-high-severity advisories whose only npm-offered "fix" was a downgrade to
-0.1.0, and it pulled in Puppeteer and a second browser download. For a page
-made of four static files with no third-party requests, a Lighthouse
+Every GitHub Action is pinned to a full commit SHA and the actionlint
+container to an image digest — a tag like `@v4` is mutable and can be
+repointed at new code, a SHA cannot. The trade is that pins do not update
+themselves, so Dependabot watches the `github-actions` ecosystem and groups
+its bumps into a single PR. The actionlint image digest is the one pin
+Dependabot does not manage; refresh it by hand when bumping that tool.
+
+Node floor is `^22.22.0 || >=24.8.0`, which is the real intersection of what
+the tooling requires (`html-validate` needs `^22.22 || >=24.8`, `linkinator`
+needs `>=22`, `eslint` needs `^20.19 || ^22.13 || >=24`). CI runs 24.
+
+`@lhci/cli` (Lighthouse CI) was evaluated and **removed**: it contributed
+five high-severity advisories whose only npm-offered "fix" was a downgrade
+to 0.1.0, and it pulled in Puppeteer and a second browser download. For a
+page made of four static files with no third-party requests, a Lighthouse
 performance score is a foregone conclusion — so the budget it was protecting
 is now enforced directly by `tests/e2e/budget.spec.js`, which fails the build
 if the page grows past 60KB or 8 requests, or fetches a file that is not on
 the allowlist. That catches the thing that actually rots (someone adds a web
 font) without the supply-chain cost.
 
-Two moderate advisories remain, both transitive through `linkinator`, the
-dev-only link checker. They are below the gate and Dependabot will bump them.
+`gitleaks-action` is free for personal repositories; organisation use
+requires a licence key.
 
 To run Lighthouse ad hoc without committing it as a dependency:
 
