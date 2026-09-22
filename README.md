@@ -42,18 +42,21 @@ npm test           # lint + unit + end-to-end
 npm run test:unit  # node:test, no dependencies, runs in milliseconds
 npm run test:e2e   # Playwright: navigation, keyboard, no-JS, a11y, security, layout, budget, visual
 npm run links      # external link check
+npm run lint:actions  # actionlint over .github/workflows (needs the actionlint binary)
 ```
 
-| Suite                          | What it protects                                                                                                                              |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/unit/`                  | The keypad state machine, route resolution and clock formatting — the only real logic in the codebase                                         |
-| `tests/e2e/navigation.spec.js` | Deep links, fastext bar, back/forward, unknown-hash fallback                                                                                  |
-| `tests/e2e/keyboard.spec.js`   | Page-number shortcut, modifier safety, focus ring on every link, no keyboard trap                                                             |
-| `tests/e2e/nojs.spec.js`       | The whole site with scripting disabled                                                                                                        |
-| `tests/e2e/a11y.spec.js`       | Zero axe violations on all six pages — this is what enforces the palette's contrast rules                                                     |
-| `tests/e2e/security.spec.js`   | CSP intact, no inline script/style/handlers, no third-party requests, `rel` on external links                                                 |
-| `tests/e2e/layout.spec.js`     | The 40-column grid actually fits at 320/390/768/1440px, nothing overflows the screen, the fastext bar stays on one row — runs on every engine |
-| `tests/e2e/visual.spec.js`     | Pixel baselines at 320/390/768/1440px, clock frozen so a diff means something                                                                 |
+| Suite                           | What it protects                                                                                                                              |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/unit/core.test.js`       | The keypad state machine, route resolution and clock formatting — the only real logic in the codebase                                         |
+| `tests/unit/site-files.test.js` | CNAME is one bare hostname, the canonical URL still matches it, robots.txt allows crawling                                                    |
+| `tests/e2e/navigation.spec.js`  | Deep links, fastext bar, back/forward, unknown-hash fallback                                                                                  |
+| `tests/e2e/keyboard.spec.js`    | Page-number shortcut, modifier safety, focus ring on every link, no keyboard trap                                                             |
+| `tests/e2e/nojs.spec.js`        | The whole site with scripting disabled                                                                                                        |
+| `tests/e2e/a11y.spec.js`        | Zero axe violations on all six pages — this is what enforces the palette's contrast rules                                                     |
+| `tests/e2e/security.spec.js`    | CSP intact, no inline script/style/handlers, no third-party requests, `rel` on external links                                                 |
+| `tests/e2e/layout.spec.js`      | The 40-column grid actually fits at 320/390/768/1440px, nothing overflows the screen, the fastext bar stays on one row — runs on every engine |
+| `tests/e2e/budget.spec.js`      | Page weight under 60KB and 8 requests, and nothing fetched outside the allowlist                                                              |
+| `tests/e2e/visual.spec.js`      | Pixel baselines at 320/390/768/1440px, clock frozen so a diff means something                                                                 |
 
 Visual baselines are Chromium-only on purpose: comparing font rasterisation
 across three engines produces noise, not signal.
@@ -71,6 +74,26 @@ To refresh baselines after an intentional design change:
 ```sh
 npx playwright test visual --update-snapshots
 ```
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main`, every pull request,
+and on demand. Five jobs, all blocking:
+
+| Job                     | What it runs                                                                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Lint, unit tests, audit | `eslint`, `stylelint`, `html-validate`, `prettier --check`, `node:test`, `npm audit --audit-level=high`                             |
+| End-to-end              | Playwright across chromium, firefox, webkit, mobile and a JavaScript-disabled project                                               |
+| Workflow lint           | `actionlint` — catches bad expressions, unknown contexts and shellcheck findings inside `run:` blocks, which YAML validity does not |
+| Link check              | `linkinator`, so a dead external link fails the build                                                                               |
+| Secret scan             | `gitleaks` over the full history                                                                                                    |
+
+`.github/workflows/codeql.yml` runs CodeQL on pull requests and weekly.
+`.github/workflows/pages.yml` re-verifies and deploys on push to `main`.
+
+Every action is pinned to a full commit SHA (the actionlint container to an
+image digest), workflows default to `permissions: contents: read`, and none
+uses `pull_request_target`.
 
 ## Colour and contrast
 
@@ -92,37 +115,41 @@ It publishes an **allowlist**, not the checkout — `index.html`, `robots.txt`,
 `assets/` and `CNAME` are copied into `_site/`. Tests, workflows and configs
 stay off the public site.
 
+### Custom domain
+
+`CNAME` is committed and contains `juuso.issakainen.fi`. It is whitelisted in
+`.gitignore` — it has to be, or the deny-by-default rules would drop it
+silently, and a missing `CNAME` file is exactly how a custom domain reverts
+without anyone noticing. `tests/unit/site-files.test.js` asserts it holds one
+bare hostname and that `index.html`'s canonical URL still points at the same
+host.
+
 ### One-time setup
 
-1. **Repository → Settings → Pages → Build and deployment → Source:**
-   select **GitHub Actions**.
-2. Add the `CNAME` file to the repo root containing the bare subdomain, e.g.
-   `juuso.example.com` — no scheme, no trailing slash, no trailing newline
-   issues (a single trailing newline is fine).
-3. Add one DNS record at your provider:
+1. **Settings → Pages → Build and deployment → Source:** select
+   **GitHub Actions**. Nothing deploys until this is set.
+2. Add one DNS record at domainhotelli.fi:
 
-   | Type  | Name                          | Value               |
-   | ----- | ----------------------------- | ------------------- |
-   | CNAME | `juuso` (the subdomain label) | `juusoi.github.io.` |
+   | Type  | Name    | Value               |
+   | ----- | ------- | ------------------- |
+   | CNAME | `juuso` | `juusoi.github.io.` |
 
    The target is the **user** domain `juusoi.github.io`, not the project
    path — GitHub routes to the right repository using the `CNAME` file.
+   Leave the existing `issakainen.fi` A record alone; this only adds a
+   subdomain.
 
-4. **Settings → Pages → Custom domain:** enter the same subdomain and save.
-   GitHub verifies DNS, then issues a Let's Encrypt certificate. This can
-   take up to 24 hours; until it completes, HTTPS will error.
-5. Once the certificate is issued, tick **Enforce HTTPS**.
+3. **Settings → Pages → Custom domain:** enter `juuso.issakainen.fi` and
+   save. GitHub verifies DNS, then issues a Let's Encrypt certificate. This
+   can take up to 24 hours, and HTTPS errors until it completes.
+4. Once the certificate is issued, tick **Enforce HTTPS**.
 
-Check propagation with:
+Verify:
 
 ```sh
-dig +short juuso.example.com CNAME
-curl -sSI https://juuso.example.com/ | head -1
+dig +short juuso.issakainen.fi CNAME     # expect juusoi.github.io.
+curl -sSI https://juuso.issakainen.fi/ | head -1
 ```
-
-Note that `CNAME` is whitelisted in `.gitignore`. It has to be — the
-deny-by-default rules would otherwise drop it silently, and a missing
-`CNAME` file is exactly how a custom domain reverts without anyone noticing.
 
 Asset paths are relative, so the site works both at
 `juusoi.github.io/fictional-palm-tree/` and at the custom domain root.

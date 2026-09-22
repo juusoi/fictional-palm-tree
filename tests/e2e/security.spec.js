@@ -103,11 +103,42 @@ test("every external link carries noopener and noreferrer", async ({ page }) => 
 test("no subresource points outside the origin", async ({ page }) => {
   await page.goto("/");
 
-  const external = await page.evaluate(() =>
-    Array.from(document.querySelectorAll("[src], link[href]"))
-      .map((el) => el.getAttribute("src") || el.getAttribute("href"))
-      .filter((value) => value && /^(https?:)?\/\//i.test(value)),
-  );
+  const external = await page.evaluate(() => {
+    // Only rel values that actually cause a fetch. rel="canonical" points at
+    // the public URL by design and is never requested, so counting it would
+    // be a false positive.
+    const FETCHING_REL = new Set([
+      "stylesheet",
+      "icon",
+      "shortcut",
+      "apple-touch-icon",
+      "mask-icon",
+      "preload",
+      "modulepreload",
+      "prefetch",
+      "preconnect",
+      "dns-prefetch",
+      "manifest",
+    ]);
+
+    const urls = [];
+    for (const el of document.querySelectorAll("[src]")) {
+      urls.push(el.getAttribute("src"));
+    }
+    for (const el of document.querySelectorAll("link[href]")) {
+      const rels = (el.getAttribute("rel") || "").toLowerCase().split(/\s+/);
+      if (rels.some((rel) => FETCHING_REL.has(rel))) {
+        urls.push(el.getAttribute("href"));
+      }
+    }
+    return urls.filter((value) => value && /^(https?:)?\/\//i.test(value));
+  });
 
   expect(external, `external subresources: ${external}`).toEqual([]);
+});
+
+test("the canonical URL is the production HTTPS origin", async ({ page }) => {
+  await page.goto("/");
+  const href = await page.locator('link[rel="canonical"]').getAttribute("href");
+  expect(href).toBe("https://juuso.issakainen.fi/");
 });

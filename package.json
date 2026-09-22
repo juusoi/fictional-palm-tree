@@ -18,6 +18,7 @@
     "lint:css": "stylelint \"assets/**/*.css\"",
     "lint:html": "html-validate index.html",
     "lint:format": "prettier --check .",
+    "lint:actions": "actionlint .github/workflows/*.yml",
     "format": "prettier --write .",
     "links": "linkinator index.html --recurse --skip \"^https://www.linkedin.com\"",
     "audit:ci": "npm audit --audit-level=high"
