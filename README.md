@@ -128,7 +128,9 @@ host.
 ### One-time setup
 
 1. **Settings → Pages → Build and deployment → Source:** select
-   **GitHub Actions**. Nothing deploys until this is set.
+   **GitHub Actions**. The workflow passes `enablement: true` to
+   `configure-pages`, so the first run should provision this itself — check
+   the setting afterwards and set it by hand if the run reports otherwise.
 2. Add one DNS record at domainhotelli.fi:
 
    | Type  | Name    | Value               |
