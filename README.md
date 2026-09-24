@@ -15,15 +15,6 @@ colour bar. Modern reading UX underneath the 1980s surface.
 - **Dev dependencies are for verification only** — tests and linters. None
   of it ships.
 
-## Content
-
-> [!IMPORTANT]
-> The copy is a **draft template, not a verified bio**. Only "QA engineer",
-> "Nitor", the GitHub handle and the email address are real. Everything else
-> is placeholder text, each block marked in `index.html` with
-> `<!-- TODO(juuso): verify -->`. Search for that string and rewrite before
-> this goes anywhere public.
-
 ## Run it
 
 ```sh
