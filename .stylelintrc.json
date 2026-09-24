@@ -1,0 +1,9 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "custom-property-pattern": "^tt-[a-z0-9-]+$",
+    "selector-class-pattern": "^tt-[a-z0-9]+(__[a-z0-9-]+)?(--[a-z0-9-]+)?$|^is-[a-z-]+$|^js$",
+    "color-hex-length": "short",
+    "declaration-property-value-no-unknown": true
+  }
+}

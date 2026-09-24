@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# No Sitemap: line on purpose. The six teletext pages are hash fragments of
+# a single document, so a sitemap would list exactly one URL — the crawl
+# entry point a crawler already has.

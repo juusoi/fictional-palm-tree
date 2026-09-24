@@ -1,0 +1,70 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancel a deploy midway; queue instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify before deploying
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:unit
+      # Chromium and the no-JS project are enough of a gate for a deploy;
+      # the full cross-engine matrix already ran in ci.yml on the same commit.
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=chromium --project=nojs
+
+  deploy:
+    name: Deploy
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Publish an explicit allowlist rather than the whole checkout: the
+      # repo also holds tests, workflows and configs, and none of that
+      # belongs on the public site. Same philosophy as the .gitignore.
+      - name: Stage the site
+        run: |
+          mkdir -p _site
+          cp index.html robots.txt _site/
+          cp -R assets _site/
+          if [ -f CNAME ]; then cp CNAME _site/; fi
+          echo "--- staged ---"
+          find _site -type f | sort
+
+      # enablement: true lets the first run provision the Pages site itself,
+      # using the job's pages: write permission. Without it the deploy fails
+      # until someone sets Settings -> Pages -> Source by hand.
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

@@ -1,0 +1,38 @@
+{
+  "name": "fictional-palm-tree",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Teletext-styled portfolio for Juuso Issakainen. Zero runtime dependencies.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": "^22.22.0 || >=24.8.0"
+  },
+  "scripts": {
+    "serve": "node tests/server.js .",
+    "test": "npm run lint && npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test \"tests/unit/*.test.js\"",
+    "test:e2e": "playwright test",
+    "lint": "npm run lint:js && npm run lint:css && npm run lint:html && npm run lint:format",
+    "lint:js": "eslint .",
+    "lint:css": "stylelint \"assets/**/*.css\"",
+    "lint:html": "html-validate index.html",
+    "lint:format": "prettier --check .",
+    "lint:actions": "actionlint .github/workflows/*.yml",
+    "format": "prettier --write .",
+    "links": "linkinator index.html --recurse --skip \"^https://www.linkedin.com\" --skip \"^https://juuso.issakainen.fi\"",
+    "audit:ci": "npm audit --audit-level=high"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "html-validate": "^11.16.0",
+    "linkinator": "^8.1.0",
+    "prettier": "^3.9.8",
+    "stylelint": "^17.15.0",
+    "stylelint-config-standard": "^40.0.0"
+  }
+}

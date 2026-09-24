@@ -1,0 +1,352 @@
+/* ============================================================
+   Teletext portfolio — Juuso Issakainen
+   Eight-colour teletext palette, 40-column grid, modern UX.
+   No inline styles anywhere: the page ships a strict CSP.
+   ============================================================ */
+
+:root {
+  /* The eight teletext colours, unmodified. */
+  --tt-black: #000;
+  --tt-red: #f00;
+  --tt-green: #0f0;
+  --tt-yellow: #ff0;
+  --tt-blue: #00f;
+  --tt-magenta: #f0f;
+  --tt-cyan: #0ff;
+  --tt-white: #fff;
+
+  /* Pure blue on black is 2.4:1 and fails WCAG AA. It is allowed as
+     decoration only; anything readable uses this lightened variant. */
+  --tt-blue-text: #6a7cff;
+
+  /* Dimmed white for de-emphasised text — still 8.9:1 on black. */
+  --tt-dim: #9d9d9d;
+  --tt-font:
+    ui-monospace, "SF Mono", sfmono-regular, menlo, consolas, "Liberation Mono", monospace;
+  --tt-cols: 40;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: #080808;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: #080808;
+  color: var(--tt-white);
+  font-family: var(--tt-font);
+}
+
+/* The screen. Font size is derived from the viewport so that ~40 characters
+   always fit the width, from a 320px phone upwards — the teletext grid stays
+   intact instead of reflowing into a different layout. */
+.tt-screen {
+  width: 42ch;
+  max-width: 100%;
+  min-height: 100dvh;
+  margin-inline: auto;
+  padding-inline: 1ch;
+  padding-block: 1em;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  background: var(--tt-black);
+  font-size: clamp(11px, calc(100vw / 26), 18px);
+  line-height: 1.25;
+}
+
+/* ---------- header row ---------- */
+
+.tt-header__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1ch;
+  margin: 0;
+  color: var(--tt-black);
+  background: var(--tt-yellow);
+  padding-inline: 0.5ch;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tt-header__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-header__clock {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- pages ---------- */
+
+.tt-main {
+  flex: 1;
+}
+
+.tt-page {
+  display: none;
+}
+
+/* Routing without JavaScript. :target does the work; the :has() rule below
+   picks the index page when no hash is present. JS adds .is-current for
+   focus management and to cover browsers without :has(). */
+.tt-page:target,
+.tt-page.is-current {
+  display: block;
+}
+
+.tt-main:not(:has(.tt-page:target)) #p100 {
+  display: block;
+}
+
+.tt-page:focus {
+  outline: none;
+}
+
+/* ---------- double-height text (the classic teletext effect) ---------- */
+
+.tt-dh {
+  display: block;
+  margin: 0 0 1.3em;
+  font-size: 1em;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.15ch;
+  transform: scaleY(2);
+  transform-origin: left top;
+}
+
+.tt-dh--yellow {
+  color: var(--tt-yellow);
+}
+
+.tt-dh--green {
+  color: var(--tt-green);
+}
+
+.tt-dh--cyan {
+  color: var(--tt-cyan);
+}
+
+.tt-dh--magenta {
+  color: var(--tt-magenta);
+}
+
+.tt-dh--red {
+  color: var(--tt-red);
+}
+
+.tt-mosaic {
+  margin: 0;
+  color: var(--tt-blue-text);
+  letter-spacing: -0.05ch;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ---------- colour utilities ---------- */
+
+.tt-green {
+  color: var(--tt-green);
+}
+
+.tt-cyan {
+  color: var(--tt-cyan);
+}
+
+.tt-yellow {
+  color: var(--tt-yellow);
+}
+
+.tt-dim {
+  color: var(--tt-dim);
+}
+
+/* ---------- index page ---------- */
+
+.tt-tagline {
+  margin: 0 0 0.75em;
+}
+
+/* Flex + gap rather than an adjacent-sibling rule: it keeps the selector
+   specificity flat, which the stylelint ordering rules care about. */
+.tt-index__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  list-style: none;
+  margin: 1em 0;
+  padding: 0;
+}
+
+.tt-index__no {
+  display: inline-block;
+  min-width: 4ch;
+  color: var(--tt-green);
+}
+
+.tt-hint {
+  color: var(--tt-dim);
+  margin: 1.5em 0 0;
+}
+
+.tt-hint kbd {
+  font: inherit;
+  color: var(--tt-black);
+  background: var(--tt-dim);
+  padding-inline: 0.4ch;
+}
+
+/* ---------- rows (work, contact) ---------- */
+
+.tt-rows {
+  list-style: none;
+  margin: 0 0 1em;
+  padding: 0;
+}
+
+.tt-rows li {
+  display: flex;
+  gap: 1ch;
+  margin-bottom: 0.4em;
+}
+
+.tt-rows__year {
+  flex: 0 0 5ch;
+}
+
+.tt-rows__what {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- skills ---------- */
+
+.tt-skills {
+  margin: 0;
+}
+
+.tt-skills dt {
+  margin-top: 1em;
+}
+
+.tt-skills dd {
+  margin: 0.2em 0 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- projects ---------- */
+
+.tt-card {
+  margin-bottom: 1.5em;
+}
+
+.tt-card h3 {
+  font-size: 1em;
+  margin: 0 0 0.35em;
+}
+
+.tt-card p {
+  margin: 0 0 0.4em;
+}
+
+.tt-card code {
+  font: inherit;
+  color: var(--tt-green);
+}
+
+/* ---------- links & focus ---------- */
+
+a {
+  color: var(--tt-white);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  color: var(--tt-yellow);
+}
+
+:focus-visible {
+  outline: 0.15em solid var(--tt-white);
+  outline-offset: 0.15em;
+}
+
+.tt-skip {
+  position: absolute;
+  left: -9999px;
+}
+
+.tt-skip:focus {
+  position: static;
+  display: inline-block;
+  padding: 0.3em 1ch;
+  color: var(--tt-black);
+  background: var(--tt-yellow);
+}
+
+/* ---------- fastext bar ---------- */
+
+.tt-fastext ul {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5ch;
+  list-style: none;
+  margin: 0;
+  padding: 0.5em 0 0;
+  border-top: 0.15em solid var(--tt-dim);
+}
+
+.tt-fastext a {
+  display: block;
+  text-decoration: none;
+  text-align: center;
+  padding-block: 0.2em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-fastext a::before {
+  content: "\25a0\00a0";
+}
+
+.tt-fastext__red a {
+  color: var(--tt-red);
+}
+
+.tt-fastext__green a {
+  color: var(--tt-green);
+}
+
+.tt-fastext__yellow a {
+  color: var(--tt-yellow);
+}
+
+.tt-fastext__cyan a {
+  color: var(--tt-cyan);
+}
+
+.tt-fastext a:hover,
+.tt-fastext a:focus-visible {
+  text-decoration: underline;
+}
+
+/* ---------- motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
